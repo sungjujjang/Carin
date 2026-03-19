@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CarIn</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <style>
+        @font-face {
+            font-family: 'Pretendard';
+            src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-Regular.woff2') format('woff2');
+            font-weight: 400;
+            font-display: swap;
+        }
+
+        body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .map{
+            -ms-overflow-style: none;
+        }
+        ::-webkit-scrollbar {
+            display: none;
+        }
+        
+        * {
+            font-family: 'Pretendard';
+        }
+
+        .header {
+            font-family: 'Pretendard';
+            overflow: hidden;
+        }
+
+        .map {
+            height: 100vh;
+            width: 100vw;
+        }
+
+        .floating_menu {
+            position: fixed;
+            bottom: 30px;
+            right: 20px;
+            z-index: 999;
+        }
+
+        .floating_btn {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            border: none;
+            background-color: #ffffff;
+            color: rgb(0, 0, 0);
+            font-size: 28px;
+
+            display: flex;
+            justify-content: center;
+            align-items: center;
+
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            transition: 0.2s;
+        }
+
+        .floating_btn:hover {
+            transform: scale(1.1);
+        }
+
+        .sub_btn {
+            width:60px;
+            height:60px;
+            border-radius:50%;
+            border:none;
+            background:white;
+            font-size:22px;
+
+            position:absolute;
+            right:5px;
+
+            opacity:0;
+            transform:translateY(20px);
+
+            transition:0.3s;
+            box-shadow:0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .sub_btn.show{
+            opacity:1;
+            transform:translateY(0);
+        }
+
+        #addBtn{
+            bottom:90px;
+        }
+
+        #listBtn{
+            bottom:160px;
+        }
+
+        .explorebtn {
+            width: 110px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 20px;
+            margin-top: 10px;
+            background-color: rgb(236, 236, 236);
+            border-radius: 30px;
+            color: rgb(19, 19, 19);
+            font-weight: 600;
+            border: none;
+            position: relative; 
+            cursor: pointer;
+            transition-duration: .2s;
+            box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.116);
+            padding-left: 8px;
+            transition-duration: .5s;
+        }
+
+        .explorebtn_svgIcon {
+            height: 25px;
+            transition-duration: 1.5s;
+        }
+
+        .bell path {
+            fill: rgb(19, 19, 19);
+        }
+
+        .explorebtn:hover {
+            background-color: rgb(226, 226, 226);
+            transition-duration: .5s;
+        }
+
+        .explorebtn:active {
+            transform: scale(0.97);
+            transition-duration: .2s;
+        }
+
+        .explorebtn:hover .explorebtn_svgIcon {
+            transform: rotate(250deg);
+            transition-duration: 1.5s;
+        }
+
+        .form-control {
+            background-color: #e9ecef;
+        }
+    </style>
+</head> 
+
+<body>
+    <div class="header">
+        <nav class="navbar navbar-expand-lg bg-body-tertiary fixed-top">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="#">CarIn</a>
+
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <div class="collapse navbar-collapse" id="navbarNav">
+
+                    <ul class="navbar-nav">
+                        <li class="nav-item">
+                            <a class="nav-link active" href="#">지도</a>
+                        </li>
+                        {% if user.is_authenticated %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="/mypage">마이페이지</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="javascript:showMyRoomModal();">내가 참여한 방</a>
+                        </li>
+                        {% endif %}
+                    </ul>
+
+                    <ul class="navbar-nav ms-auto">
+
+                        {% if user.is_authenticated %}
+
+                        <li class="nav-item d-flex align-items-center gap-2">
+                            <span class="nav-link disabled">{{ user.name }}</span>
+                            <a href="{% url 'logout' %}" class="btn btn-outline-secondary btn-sm">로그아웃</a>
+                        </li>
+
+                        {% else %}
+
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'login' %}">로그인</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'signup' %}">회원가입</a>
+                        </li>
+
+                        {% endif %}
+
+                    </ul>
+
+                </div>
+            </div>
+        </nav>
+    </div>
+
+    {% if not user.is_authenticated %}
+    <div class="floating_menu"></div>
+    {% else %}
+    <div class="floating_menu">
+        <button class="sub_btn" id="addBtn" data-bs-toggle="modal" data-bs-target="#create_popup">
+            <i class="bi bi-plus"></i>
+        </button>
+
+        <button class="sub_btn" id="listBtn" data-bs-toggle="modal" data-bs-target="#list_modal">
+            <i class="bi bi-card-list"></i>
+        </button>
+
+        <button class="floating_btn" id="menuBtn">
+            <i class="bi bi-list"></i>
+        </button>
+    </div>
+    {% endif %}
+
+    <div class="create_popup">
+        <div class="modal fade" id="create_popup" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalLabel">카풀 추가하기</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="recipient-name-start" class="col-form-label">출발지 : </label>
+                        <input type="text" class="form-control" id="recipient-name-start" disabled>
+                        <button class="explorebtn" onclick="make_start_dir(0, 0);">
+                            <svg class="explorebtn_svgIcon" viewBox="0 0 512 512" height="1em" xmlns="http://www.w3.org/2000/svg"><path d="M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512zm50.7-186.9L162.4 380.6c-19.4 7.5-38.5-11.6-31-31l55.5-144.3c3.3-8.5 9.9-15.1 18.4-18.4l144.3-55.5c19.4-7.5 38.5 11.6 31 31L325.1 306.7c-3.2 8.5-9.9 15.1-18.4 18.4zM288 256a32 32 0 1 0 -64 0 32 32 0 1 0 64 0z"></path></svg>
+                            찾기
+                        </button>
+                    </div>
+                    <div class="mb-3">
+                        <label for="recipient-name-end" class="col-form-label">도착지 : </label>
+                        <input type="text" class="form-control" id="recipient-name-end" disabled>
+                        <button class="explorebtn" onclick="make_end_dir(0, 0);">
+                            <svg class="explorebtn_svgIcon" viewBox="0 0 512 512" height="1em" xmlns="http://www.w3.org/2000/svg"><path d="M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512zm50.7-186.9L162.4 380.6c-19.4 7.5-38.5-11.6-31-31l55.5-144.3c3.3-8.5 9.9-15.1 18.4-18.4l144.3-55.5c19.4-7.5 38.5 11.6 31 31L325.1 306.7c-3.2 8.5-9.9 15.1-18.4 18.4zM288 256a32 32 0 1 0 -64 0 32 32 0 1 0 64 0z"></path></svg>
+                            찾기
+                        </button>
+                    </div>
+                    <div class="mb-3">
+                        <label for="recipient-name-context" class="col-form-label">내용 : </label>
+                        <input type="text" class="form-control" id="recipient-name-context">
+                    </div>
+                    <div class="mb-3">
+                        <label for="recipient-name-max" class="col-form-label">최대 인원 : </label>
+                        <input type="text" class="form-control" id="recipient-name-max">
+                    </div>
+                    <div class="mb-3">
+                        <label for="recipient-name-stime" class="col-form-label">출발 시각 : </label>
+                        <input type="text" class="form-control" id="recipient-name-stime" data-id="timePicker">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
+                    <button type="button" class="btn btn-primary" id="create_btn">방 생성하기</button>
+                </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="myroomget_popup">
+        <div class="modal fade" id="myroomget_modal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-scrollable modal-dialog-centered">
+                <div class="modal-content">
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5" id="exampleModalLabel">내가 참가중인 방</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="mylists"></div>
+                </div>
+                <div class="modal-footer">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="list_popup">
+        <div class="modal fade" id="list_modal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-scrollable modal-dialog-centered">
+                <div class="modal-content">
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5" id="exampleModalLabel">방 찾기</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <input type="text" class="form-control" id="starting" placeholder="출발지">
+                        <input type="text" class="form-control mt-3" id="ending" placeholder="도착지">
+                        <button class="explorebtn" id="explorebtn_se">
+                            <svg class="explorebtn_svgIcon" viewBox="0 0 512 512" height="1em" xmlns="http://www.w3.org/2000/svg"><path d="M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512zm50.7-186.9L162.4 380.6c-19.4 7.5-38.5-11.6-31-31l55.5-144.3c3.3-8.5 9.9-15.1 18.4-18.4l144.3-55.5c19.4-7.5 38.5 11.6 31 31L325.1 306.7c-3.2 8.5-9.9 15.1-18.4 18.4zM288 256a32 32 0 1 0 -64 0 32 32 0 1 0 64 0z"></path></svg>
+                            찾기
+                        </button>
+                        <p class="mt-3" id="pageshow"></p>
+                    </div>
+                    <div id="lists"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary me-auto" id="prevbtn">
+                        <
+                    </button>
+
+                    <button type="button" class="btn btn-secondary mx-auto" data-bs-dismiss="modal">
+                        X
+                    </button>
+
+                    <button type="button" class="btn btn-secondary ms-auto" id="nextbtn">
+                        >
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="map" class="map"></div>
+
+    <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=9d354b54cf5cc082e401337231790df7"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script>
+        var letx = 35.81497194368538;
+        var lety = 128.51687884332537;
+
+        const getSuccess = (position) => {
+            console.log(position);
+            letx = position.coords.latitude
+            lety = position.coords.longitude
+            map.panTo(new kakao.maps.LatLng(letx, lety));
+
+        };
+
+        const getError = () => {
+            console.log("geolocation api error");
+        };
+
+        const opt = {
+            enableHighAccuracy: true,
+            timeout: 50000,
+            maximumAge: 60000,
+        };
+
+        window.navigator.geolocation.getCurrentPosition(getSuccess, getError, opt);
+        var container = document.getElementById('map');
+        var options = {
+            center: new kakao.maps.LatLng(letx, lety),
+            level: 3
+        };
+
+        var map = new kakao.maps.Map(container, options);
+
+        const publicKey = "BNrEBOqu-8WsrcZQWKFMTNUmt3aALT-FpmwOZPEU3aaf7SVtRyrRFl3xrM9zzbyiPtjK5AwVbSUY9igrzlf642o";
+        var menuBtn = document.getElementById("menuBtn");
+        var addBtn = document.getElementById("addBtn");
+        var listBtn = document.getElementById("listBtn");
+        const CreatePopupModal = document.getElementById("create_popup");
+        const ListModal = document.getElementById("list_modal");
+        const MyRoomModal = document.getElementById("myroomget_modal");
+        const start_dir = document.getElementById("recipient-name-start");
+        const end_dir = document.getElementById("recipient-name-end");
+        const context = document.getElementById("recipient-name-context");
+        const max_p = document.getElementById("recipient-name-max");
+        const start_time = document.getElementById("recipient-name-stime");
+        const create_btn = document.getElementById("create_btn");
+        const ListMenu = document.getElementById("lists");
+        const myListMenu = document.getElementById("mylists");
+
+        const starting = document.getElementById("starting");
+        const ending = document.getElementById("ending");
+
+        const explorebtn_se = document.getElementById("explorebtn_se");
+        const nextbtn = document.getElementById("nextbtn");
+        const prevbtn = document.getElementById("prevbtn");
+        const pageshow = document.getElementById("pageshow");
+
+        let is_makeing = false;
+
+        let room_dirs = {};
+
+        var max_count = 0;
+        var polylines = [];
+
+        var page = 1;
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let cookie of cookies) {
+                    cookie = cookie.trim();
+                    if (cookie.startsWith(name + '=')) {
+                        cookieValue = cookie.substring(name.length + 1);
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        function urlBase64ToUint8Array(base64String) {
+            const padding = '='.repeat((4 - base64String.length % 4) % 4);
+            const base64 = (base64String + padding)
+                .replace(/-/g, '+')
+                .replace(/_/g, '/');
+
+            const rawData = window.atob(base64);
+            return Uint8Array.from([...rawData].map(char => char.charCodeAt(0)));
+        }
+
+        async function subscribeUser() {
+            const registration = await navigator.serviceWorker.register('/sw.js');
+            const subscription = await registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(publicKey)
+            });
+
+            const sub = subscription.toJSON();
+
+            await fetch('/api/webpush/save_information', {
+                method: 'POST',
+                body: JSON.stringify({
+                    subscription: subscription.toJSON()  // .toJSON() 추가
+                }),
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            });
+        }
+
+
+        document.addEventListener("DOMContentLoaded", async () => {
+            await subscribeUser();
+        });
+
+        
+        flatpickr(start_time, {
+            enableTime: true,
+            dateFormat: "Y-m-dTH:i",
+            time_24hr: true,
+            altInput: true,
+            allowInput: true,
+            allowInvalidPreload: false,
+            minDate: "today",
+            altFormat: "Y/m/d H:i",
+            minuteIncrement: 1
+        });
+        
+        function makeOverListener(map, marker, infowindow) {
+            return function() {
+                infowindow.open(map, marker);
+            };
+        }
+
+        function makeOutListener(infowindow) {
+            return function() {
+                infowindow.close();
+            };
+        }
+
+
+        function init_list() {
+            ListMenu.innerHTML = '';
+        }
+
+        async function showMyRoomModal() {
+            var modal = bootstrap.Modal.getOrCreateInstance(MyRoomModal);
+            await append_mylist();
+            modal.show();
+        }
+
+        async function parti_room(roomid) {
+            const response = await fetch("/api/part_room", {
+                method : "POST",
+                body: JSON.stringify({
+                    roomid: roomid
+                })
+            });
+
+            if (response.status != 200) {
+                return false;
+            }
+            const data = await response.json();
+
+            if (data.status != "success") {
+                alert(data.message);
+                return false
+            }
+            alert("참여되었습니다! 내 방 목록에서 확인해주세요!");
+            await append_list(page);
+        }
+
+        async function leave_room(roomid) {
+            const response = await fetch("/api/leave_room", {
+                method : "POST",
+                body: JSON.stringify({
+                    roomid: roomid
+                })
+            });
+
+            if (response.status != 200) {
+                return false;
+            }
+            const data = await response.json();
+
+            if (data.status != "success") {
+                alert(data.message);
+                return false
+            }
+            alert("방에서 나갔습니다.");
+            await append_mylist();
+        }
+
+        function add_marker_line(roomid) {
+            init_markers();
+            var modal = bootstrap.Modal.getInstance(ListModal);
+            modal.hide();
+            var starts = room_dirs[roomid].start.split("/");
+            var ends = room_dirs[roomid].end.split("/");
+            var linePath = [
+                new kakao.maps.LatLng(parseFloat(starts[1]), parseFloat(starts[0])),
+                new kakao.maps.LatLng(parseFloat(ends[1]), parseFloat(ends[0]))
+            ];
+
+            var marker = new kakao.maps.Marker({
+                position: linePath[0]
+            });
+            var infowindow = new kakao.maps.InfoWindow({
+                content: "출발지"
+            });
+            marker.setMap(map);
+            markers.push(marker);
+
+            kakao.maps.event.addListener(marker, 'mouseover', makeOverListener(map, marker, infowindow));
+            kakao.maps.event.addListener(marker, 'mouseout', makeOutListener(infowindow));
+
+            var marker = new kakao.maps.Marker({
+                position: linePath[1]
+            });
+            var infowindow = new kakao.maps.InfoWindow({
+                content: "도착지"
+            });
+            marker.setMap(map);
+            markers.push(marker);
+
+            kakao.maps.event.addListener(marker, 'mouseover', makeOverListener(map, marker, infowindow));
+            kakao.maps.event.addListener(marker, 'mouseout', makeOutListener(infowindow));
+
+            var polyline = new kakao.maps.Polyline({
+                path: linePath,
+                strokeWeight: 5,
+                strokeColor: '#FFAE00',
+                strokeOpacity: 0.7,
+                strokeStyle: 'solid'
+            });
+            polyline.setMap(map);
+            polylines.push(polyline);
+
+            map.panTo(linePath[0]);
+        }
+
+        function add_marker_myline(roomid) {
+            init_markers();
+            var modal = bootstrap.Modal.getOrCreateInstance(MyRoomModal);
+            modal.hide();
+            var starts = room_dirs[roomid].start.split("/");
+            var ends = room_dirs[roomid].end.split("/");
+            var linePath = [
+                new kakao.maps.LatLng(parseFloat(starts[1]), parseFloat(starts[0])),
+                new kakao.maps.LatLng(parseFloat(ends[1]), parseFloat(ends[0]))
+            ];
+
+            var marker = new kakao.maps.Marker({
+                position: linePath[0]
+            });
+            var infowindow = new kakao.maps.InfoWindow({
+                content: "출발지"
+            });
+            marker.setMap(map);
+            markers.push(marker);
+
+            kakao.maps.event.addListener(marker, 'mouseover', makeOverListener(map, marker, infowindow));
+            kakao.maps.event.addListener(marker, 'mouseout', makeOutListener(infowindow));
+
+            var marker = new kakao.maps.Marker({
+                position: linePath[1]
+            });
+            var infowindow = new kakao.maps.InfoWindow({
+                content: "도착지"
+            });
+            marker.setMap(map);
+            markers.push(marker);
+
+            kakao.maps.event.addListener(marker, 'mouseover', makeOverListener(map, marker, infowindow));
+            kakao.maps.event.addListener(marker, 'mouseout', makeOutListener(infowindow));
+
+            var polyline = new kakao.maps.Polyline({
+                path: linePath,
+                strokeWeight: 5,
+                strokeColor: '#FFAE00',
+                strokeOpacity: 0.7,
+                strokeStyle: 'solid'
+            });
+            polyline.setMap(map);
+            polylines.push(polyline);
+
+            map.panTo(linePath[0]);
+        }
+
+        async function append_mylist() {
+            const response = await fetch('/api/my_room', {
+                method : "GET",
+            });
+            if (response.status != 200) {
+                return false;
+            }
+            const data = await response.json();
+            console.log(data);
+            myListMenu.innerHTML = "";
+            if (data.rooms) {
+                data.rooms.forEach((room__) => {
+                    console.log(1);
+                    room_dirs[room__.roomid] = {}
+                    room_dirs[room__.roomid].start = room__.start
+                    room_dirs[room__.roomid].end = room__.end
+                    var date = new Date(room__.start_time * 1000);
+                    var date_text = `${date.getMonth()+1}월 ${date.getDate()}일 ${date.getHours()}:${date.getMinutes()}`;
+                    const newElement = document.createElement('div');
+                    newElement.innerHTML = `<div class="card mt-3" style="width: 100%;">
+                                                <div class="card-body">
+                                                    <h5 class="card-title">${room__.context}</h5>
+                                                    <strong><p class="card-text">${room__.start_txt}</p></strong>
+                                                    <strong><p class="card-text">➡ ${room__.end_txt}</p></strong>
+                                                    <input id="roomid_${room__.roomid}" value="${room__.roomid}" style="display: none;">
+                                                    <p class="">${date_text}</p>
+                                                    <p class="">현재 ${room__.max_people}명 중 ${room__.user_count}명</p>
+                                                    <strong><p class="">인당 ${Math.ceil(room__.predict_money/(room__.user_count))}원</p></strong>
+                                                    <div class="d-flex gap-2">
+                                                        <button type="button" class="btn btn-primary" onclick="add_marker_myline(${room__.roomid});">
+                                                            지도에서 확인
+                                                        </button>
+                                                        
+                                                        <button type="button" class="btn btn-success" onclick="leave_room(${room__.roomid});">
+                                                            나가기
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>`
+                    myListMenu.appendChild(newElement);
+                    
+                })
+                return 0
+            }
+            return 0
+        }
+
+        async function append_list(page_) {
+            const response = await fetch(`/api/search_room?start_txt=${starting.value}&end_txt=${ending.value}&page=${page_}`, {
+                method : "GET",
+            });
+            if (response.status != 200) {
+                return false;
+            }
+            const data = await response.json();
+            console.log(data);
+            init_list();
+            if (data.content) {
+                max_count = data.counts
+                data.content.forEach((room__) => {
+                    if (room__.max_people <= room__.user_count) {
+                        return false
+                    }
+                    room_dirs[room__.roomid] = {}
+                    room_dirs[room__.roomid].start = room__.start
+                    room_dirs[room__.roomid].end = room__.end
+                    var date = new Date(room__.start_time * 1000);
+                    var date_text = `${date.getMonth()+1}월 ${date.getDate()}일 ${date.getHours()}:${date.getMinutes()}`;
+                    const newElement = document.createElement('div');
+                    newElement.innerHTML = `<div class="card mt-3" style="width: 100%;">
+                                                <div class="card-body">
+                                                    <h5 class="card-title">${room__.context}</h5>
+                                                    <strong><p class="card-text">${room__.start_txt}</p></strong>
+                                                    <strong><p class="card-text">➡ ${room__.end_txt}</p></strong>
+                                                    <input id="roomid_${room__.roomid}" value="${room__.roomid}" style="display: none;">
+                                                    <p class="">${date_text}</p>
+                                                    <p class="">현재 ${room__.max_people}명 중 ${room__.user_count}명</p>
+                                                    <strong><p class="">지금 참여시 인당 ${Math.ceil(room__.predict_money/(room__.user_count+1))}원</p></strong>
+                                                    <div class="d-flex gap-2">
+                                                        <button type="button" class="btn btn-primary" onclick="add_marker_line(${room__.roomid});">
+                                                            지도에서 확인
+                                                        </button>
+                                                        
+                                                        <button type="button" class="btn btn-success" onclick="parti_room(${room__.roomid});">
+                                                            참여하기
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>`
+                    ListMenu.appendChild(newElement);
+                    
+                })
+                return data.content.length
+            }
+            return 0
+        }
+
+        explorebtn_se.addEventListener("click", async function() {
+            page = 1;
+            await append_list(page);
+            pageshow.innerText = `${page}/${Math.ceil(max_count/3)}`;
+        });
+
+        nextbtn.addEventListener("click", async function() {
+            page++;
+            if (page > Math.ceil(max_count/3)) {
+                page--;
+                return false
+            }
+            var cl = await append_list(page);
+            if (cl == 0) {
+                await append_list(1);
+                page = 1;
+            }
+            pageshow.innerText = `${page}/${Math.ceil(max_count/3)}`;
+        });
+
+        prevbtn.addEventListener("click", async function() {
+            page--;
+            if (page < 1) {
+                page++;
+                return false
+            }
+            await append_list(page);
+            pageshow.innerText = `${page}/${Math.ceil(max_count/3)}`;
+        });
+
+
+
+        let markers = [];
+
+        var open = false;
+        var canAddMarker = false;
+        var nexting = void_func;
+
+        var start_x = 0;
+        var start_y = 0;
+        var end_x = 0;
+        var end_y = 0;
+        
+        create_btn.addEventListener("click", async function() {
+            if (is_makeing) {
+                return false;
+            }
+            is_makeing = true;
+            if (!start_x || !start_y || !end_x || !end_y || !context.value || !max_p.value || !start_time.value) {
+                is_makeing = false;
+                alert("모든 칸을 다 채워주세요.");
+            }
+            const response = await fetch("/api/create_room", {
+                method : "POST",
+                body: JSON.stringify({
+                    start: `${start_x}/${start_y}`,
+                    end: `${end_x}/${end_y}`,
+                    context: context.value,
+                    max_p: max_p.value,
+                    start_time: start_time.value
+                })
+            });
+            
+            if (response.status != 200) {
+                is_makeing = false;
+                alert('오류가 발생했습니다');
+                return false;
+            }
+
+            var result = await response.json();
+            console.log(result);
+            if (result.status == "no") {
+                is_makeing = false;
+                alert(result.message);
+                return false;
+            }
+
+            start_dir.value = ""
+            end_dir.value = ""
+            context.value = ""
+            max_p.value = ""
+            start_time.value = ""
+
+            var modal = bootstrap.Modal.getInstance(CreatePopupModal);
+            modal.hide();
+            init_markers();
+            completeCreatePopupModal_show();
+            is_makeing = false;
+        });
+        
+        menuBtn.addEventListener("click", function(){
+            open = !open;
+
+            if(open) {
+                addBtn.classList.add("show");
+                listBtn.classList.add("show");
+            } else{
+                addBtn.classList.remove("show");
+                listBtn.classList.remove("show");
+            }
+        });
+
+        parent.window.scrollTo(0,0);
+
+        kakao.maps.event.addListener(map, 'click', async function(mouseEvent) {
+            if (canAddMarker) {
+                var marker = new kakao.maps.Marker({
+                    position: mouseEvent.latLng
+                });
+                marker.setMap(map);
+                markers.push(marker);
+                canAddMarker = false;
+                var rst = await dirtoname(mouseEvent.latLng.La, mouseEvent.latLng.Ma);
+                nexting(true, rst, mouseEvent.latLng.La, mouseEvent.latLng.Ma);
+                nexting = void_func;
+            }
+        });
+
+        async function dirtoname(x, y) {
+            const response = await fetch(`https://dapi.kakao.com/v2/local/geo/coord2address?x=${x}&y=${y}`, {
+                method : "GET",
+                headers: { Authorization : "KakaoAK 4979865108142105c0168166472d11c5" }
+            });
+            var text = "";
+            if (response.status != 200) {
+                return false;
+            }
+            const data = await response.json();
+            if (data.documents[0] != undefined) {
+                if (data.documents[0].road_address) {
+                    text = `${data.documents[0].road_address.address_name} (${data.documents[0].road_address.building_name})`;
+                } else {
+                    text = `${data.documents[0].address.address_name}`;
+                }
+            }
+            return text
+        }
+
+        function init_markers() {
+            for (var i = 0; i < polylines.length; i++) {
+                polylines[i].setMap(null);
+            }
+            polylines = [];
+            for (var i = 0; i < markers.length; i++) {
+                markers[i].setMap(null);
+            }
+            markers = [];
+        }
+
+        function make_start_dir(a, context, x, y) {
+            var modal = bootstrap.Modal.getInstance(CreatePopupModal);
+            if (a == true) {
+                modal.show();
+                start_dir.value = context;
+                start_x = x;
+                start_y = y;
+                return
+            }
+            modal.hide();
+            alert("확인을 누르고 지도에서 택시의 출발점을 클릭하세요.");
+            canAddMarker = true;
+            init_markers();
+            nexting = make_start_dir;
+        }
+        
+        function make_end_dir(a, context, x, y) {
+            var modal = bootstrap.Modal.getInstance(CreatePopupModal);
+            if (a == true) {
+                modal.show();
+                end_dir.value = context;
+                end_x = x;
+                end_y = y;
+                return
+            }
+            modal.hide();
+            alert("확인을 누르고 지도에서 택시의 도착점을 클릭하세요.");
+            canAddMarker = true;
+            init_markers();
+            nexting = make_end_dir;
+        }
+
+        function completeCreatePopupModal_show() {
+            alert("등록되었습니다.\n출발 10분 전에 알림을 보내 드릴게요!");
+        }
+
+        function void_func() {}
+    </script>
+</body>
+</html>
